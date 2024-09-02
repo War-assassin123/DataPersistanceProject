@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -12,20 +13,29 @@ public class MainManager : MonoBehaviour
 
     public Text ScoreText;
     public GameObject GameOverText;
-    
-    private bool m_Started = false;
-    private int m_Points;
-    
-    private bool m_GameOver = false;
 
-    
+    private bool m_Started = false;
+    public int m_Points = 100;
+
+    private bool m_GameOver = false;
+    public string playerName;
+    private GameObject startText;
+
+
     // Start is called before the first frame update
     void Start()
     {
+        startText = GameObject.Find("StartText");
+        if (DataManager.instance != null)
+        {
+            playerName = DataManager.instance.playerName;
+            ScoreText.text = $"Score :  {m_Points} :  " + playerName;
+        }
+        //playerName = DataManager.instance.playerName;   
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
-        
-        int[] pointCountArray = new [] {1,1,2,2,5,5};
+
+        int[] pointCountArray = new[] { 1, 1, 2, 2, 5, 5 };
         for (int i = 0; i < LineCount; ++i)
         {
             for (int x = 0; x < perLine; ++x)
@@ -40,15 +50,21 @@ public class MainManager : MonoBehaviour
 
     private void Update()
     {
+        
         if (!m_Started)
         {
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                SceneManager.LoadScene(0);
+            }
             if (Input.GetKeyDown(KeyCode.Space))
             {
+                startText.SetActive(false);
                 m_Started = true;
                 float randomDirection = Random.Range(-1.0f, 1.0f);
                 Vector3 forceDir = new Vector3(randomDirection, 1, 0);
                 forceDir.Normalize();
-
+                StartCoroutine(SubtractPointsOverTime());
                 Ball.transform.SetParent(null);
                 Ball.AddForce(forceDir * 2.0f, ForceMode.VelocityChange);
             }
@@ -64,13 +80,36 @@ public class MainManager : MonoBehaviour
 
     void AddPoint(int point)
     {
-        m_Points += point;
-        ScoreText.text = $"Score : {m_Points}";
+        if (DataManager.instance != null)
+        {
+            m_Points += point;
+            ScoreText.text = $"Score :  {m_Points} :  " + playerName;
+        }
+        else
+        {
+            m_Points += point;
+            ScoreText.text = $"Score :  {m_Points}";
+        }
     }
 
     public void GameOver()
     {
+        DataManager.instance.CheckHighScore();
         m_GameOver = true;
         GameOverText.SetActive(true);
+    }
+    IEnumerator SubtractPointsOverTime()
+    {
+        yield return new WaitForSeconds(.5f);
+        m_Points -= 1;
+        if (DataManager.instance != null)
+        {
+            ScoreText.text = $"Score :  {m_Points} :  " + playerName;
+        }
+        else
+        {
+            ScoreText.text = $"Score :  {m_Points}";
+        }
+        StartCoroutine(SubtractPointsOverTime());
     }
 }
